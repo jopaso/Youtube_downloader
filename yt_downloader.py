@@ -1,6 +1,7 @@
 from pytubefix import YouTube
 from pytubefix import Playlist
-#from colorama import Fore, Back, Style
+from colorama import init, Fore, Back, Style
+from tqdm import tqdm
 import moviepy.editor as mp
 import os
 
@@ -21,42 +22,63 @@ def main():
         download(YouTube(link), option)
     else:
         playlist = Playlist(link)
-        print('Number of videos in playlist: %s' % len(playlist.video_urls))
-
+        print('\nNumber of videos in playlist: %s' % len(playlist.video_urls))
         print("Downloading...")
-        for video in playlist.videos:
+        for video in tqdm(playlist.videos, desc='progress'):
             download(video, option)
     
-    print("Download finished")
+    print("\nDownload finished")
 
 
 
 def download(video, type):
+    init() #init colorama
     if type == 1:
-        try:
-            #stream = video.streams.filter(only_audio=True).first() #Uncomment for mp4 ony audio format (faster download)
-            stream = video.streams.first() #Comment for mp4 only audio format
-            output = stream.download("./YouDownloads/audio/")
-            convert_to_mp3(output) #Comment for mp4 only audio format
-            print(f'Downloaded audio of: {video.title}')
-        except Exception as e:
-            print(f'ERROR downloading: {str(video.title)}:\n{str(e)}')
+        #Comment the one you don't want and uncomment the one you want
+        
+        download_audio_mp3(video)
+        #download_audio_mp4(video) #Faster BUT not compatible with only mp3 reproductors       
     else:
-        try:
-            stream = video.streams.get_highest_resolution()
-            output = stream.download("./YouDownloads/video/")
-            print(f'Downloading video of: {video.title}')
-        except Exception as e:
-            print(f'ERROR downloading: {str(video.title)}:\n{str(e)}')
+        download_video(video)
 
+    print(Style.RESET_ALL)
 
 def convert_to_mp3(file):
-    #Cargamos el fichero .mp4
+    #Load .mp4 file
     clip = mp.VideoFileClip(file)
-    #Lo escribimos como audio y `.mp3`
+    #write it as .mp3
     clip.audio.write_audiofile(file.replace('mp4', 'mp3'), logger=None)
     clip.close()
     os.remove(file)
+
+def download_video(video):
+    try:
+        stream = video.streams.get_highest_resolution()
+        output = stream.download("./YouDownloads/video/")
+        print(Fore.GREEN + f'\rDownloaded video of: {video.title}')
+    except Exception as e:
+        print(Fore.REED + f'ERROR downloading: {str(video.title)}:\n{str(e)}')
+
+def download_audio_mp3(video):
+    try:
+        stream = video.streams.first() 
+        output = stream.download("./YouDownloads/audio/")
+        convert_to_mp3(output)
+        print(Fore.GREEN + f'\rDownloaded audio of: {video.title}')
+    except Exception as e:
+        print(Fore.REED + f'ERROR downloading: {str(video.title)}:\n{str(e)}')
+    
+
+def download_audio_mp4(video):
+    try:
+        stream = video.streams.filter(only_audio=True).first() #Uncomment for mp4 ony audio format (faster download)
+        stream.download("./YouDownloads/audio/")
+        print(Fore.GREEN + f'\rDownloaded audio of: {video.title}')
+    except Exception as e:
+        print(Fore.REED + f'ERROR downloading: {str(video.title)}:\n{str(e)}')
+    
+    
+        
 
 
 if __name__ == '__main__':
